@@ -133,6 +133,16 @@ export default function Landing() {
             ))}
           </div>
         </section>
+
+        <footer className="border-t border-outline-variant/30 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-on-surface-variant">© 2026 FitScore AI. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <a href="https://github.com" className="text-sm text-on-surface-variant hover:text-primary transition-colors" aria-label="GitHub">GitHub</a>
+              <span className="text-xs px-3 py-1 rounded-full border border-outline-variant/50 text-on-surface-variant">Built with Claude API</span>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
