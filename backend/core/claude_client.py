@@ -7,11 +7,14 @@ import json
 import re
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError, ClientError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from core.config import get_settings
 
 settings = get_settings()
 _client: genai.Client | None = None
+
+FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash-lite"]
 
 
 def get_client() -> genai.Client:
@@ -21,17 +24,36 @@ def get_client() -> genai.Client:
     return _client
 
 
-def call_gemini_json(prompt: str) -> dict:
-    """Call Gemini and parse JSON from response. Strips markdown fences."""
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=3, max=15),
+    retry=retry_if_exception_type(ServerError),
+    reraise=True,
+)
+def _generate_with_fallback(prompt: str) -> str:
+    """Try primary model, fall back through FALLBACK_MODELS on 503."""
     client = get_client()
-    response = client.models.generate_content(
-        model=settings.gemini_model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-        ),
-    )
-    raw: str = response.text
+    models_to_try = [settings.gemini_model] + [m for m in FALLBACK_MODELS if m != settings.gemini_model]
+    last_error = None
+    for model in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json"),
+            )
+            return response.text
+        except ServerError as e:
+            last_error = e
+            continue
+        except ClientError:
+            raise
+    raise last_error
+
+
+def call_gemini_json(prompt: str) -> dict:
+    """Call Gemini with model fallback and parse JSON from response."""
+    raw: str = _generate_with_fallback(prompt)
 
     # Strip markdown fences just in case
     raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
