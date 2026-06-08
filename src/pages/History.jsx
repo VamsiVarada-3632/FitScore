@@ -70,7 +70,7 @@ export default function History() {
                   <h2 className="font-syne font-bold text-xl text-on-surface text-center">{currentAnalysis.role}</h2>
                   <p className="text-on-surface-variant text-center mb-4">{currentAnalysis.company}</p>
                   <div className="grid grid-cols-3 gap-3 mb-6">
-                    {[{ label: 'Matched', value: currentAnalysis.matchedKeywords.length, color: 'text-primary' }, { label: 'Missing', value: currentAnalysis.missingKeywords.length, color: 'text-error' }, { label: 'ATS', value: currentAnalysis.atsScore, color: 'text-secondary' }].map(stat => (
+                    {[{ label: 'Matched', value: (currentAnalysis.matchedKeywords || []).length, color: 'text-primary' }, { label: 'Missing', value: (currentAnalysis.missingKeywords || []).length, color: 'text-error' }, { label: 'ATS', value: currentAnalysis.atsScore || 0, color: 'text-secondary' }].map(stat => (
                       <div key={stat.label} className="text-center p-3 rounded-xl border border-outline-variant/30" style={{ background: '#19211e' }}>
                         <p className={`font-mono font-bold text-xl ${stat.color}`}>{stat.value}</p>
                         <p className="text-xs text-on-surface-variant mt-1">{stat.label}</p>
