@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -17,6 +17,8 @@ const TIPS = [
 
 export default function Upload() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const apiError = new URLSearchParams(location.search).get('error') === 'analysis_failed';
   const { uploadedFile, jdText, setUploadedFile, setJdText, setIsAnalyzing } = useStore();
   const [charCount, setCharCount] = useState(jdText.length);
   const [shakeZone, setShakeZone] = useState(false);
@@ -40,6 +42,15 @@ export default function Upload() {
       <div className="relative z-10">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          {apiError && (
+            <motion.div
+              className="mb-6 p-4 rounded-xl border border-error/40 text-error text-sm flex items-center gap-3"
+              style={{ background: 'rgba(255,180,171,0.08)' }}
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+              Analysis failed — the backend may be unavailable. Make sure the server is running on port 8001 and try again.
+            </motion.div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <motion.div className="lg:col-span-7 flex flex-col gap-8" initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
               <div>
