@@ -178,16 +178,48 @@ JD_SECTION_PATTERNS = {
 }
 
 ROLE_PATTERNS = [
-    r"(?:senior|junior|lead|principal|staff)?\s*(?:software|frontend|backend|full[\s-]?stack|devops|ml|ai|data)\s*(?:engineer|developer|architect|scientist)",
-    r"(?:product|project|program)\s*manager",
-    r"(?:ux|ui|product)\s*designer",
+    # ML/AI/Data roles — checked first (more specific)
+    r"(?:senior|junior|lead|principal|staff)?\s*(?:machine\s*learning|ml|ai|artificial\s*intelligence)\s*(?:engineer|scientist|researcher|developer)",
+    r"(?:senior|junior|lead|principal|staff)?\s*data\s*(?:scientist|engineer|analyst)",
+    r"(?:senior|junior|lead|principal|staff)?\s*(?:nlp|computer\s*vision|deep\s*learning)\s*(?:engineer|researcher|scientist)",
+    # Software/Frontend/Backend
+    r"(?:senior|junior|lead|principal|staff)?\s*(?:software|frontend|backend|full[\s-]?stack|devops|platform|site\s*reliability)\s*(?:engineer|developer|architect)",
+    r"(?:senior|junior|lead|principal|staff)?\s*(?:react|vue|angular|node|python|java|golang)\s*(?:developer|engineer)",
+    # Product/Design/Management
+    r"(?:senior|junior|lead)?\s*(?:product|project|program)\s*(?:manager|owner)",
+    r"(?:senior|junior|lead)?\s*(?:ux|ui|product)\s*(?:designer|researcher)",
+    # Generic seniority fallback
+    r"(?:senior|junior|lead|principal|staff)\s*(?:engineer|developer|scientist|analyst)",
 ]
 
 COMPANY_PATTERNS = [
-    r"(?:at|@|join|with)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?(?:\s+(?:Inc|Ltd|LLC|Corp|Co|Technologies|Labs|Systems)\.?)?)",
+    # "Engineer at CompanyName" — most common in JD titles
+    r"(?:engineer|developer|scientist|analyst|manager|designer)\s+at\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)",
+    # "join CompanyName" / "joining CompanyName"
+    r"(?:join|joining)\s+([A-Z][a-zA-Z]+(?:'s)?(?:\s+[A-Z][a-zA-Z]+)?)",
+    # "at CompanyName, we" or "at CompanyName."
+    r"\bat\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)[,\.]?\s+(?:we|our)",
+    # "CompanyName is hiring/looking/seeking"
     r"([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s+is\s+(?:hiring|looking|seeking)",
-    r"About\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)",
+    # "About CompanyName"
+    r"[Aa]bout\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)",
 ]
+
+_FALSE_POSITIVE_COMPANIES = {"the", "our", "this", "we", "you", "they", "i", "a", "an"}
+
+
+def extract_role_from_jd(jd_text: str) -> str:
+    """Check first 3 lines first (title is usually at top), then full text."""
+    first_lines = " ".join(jd_text.split("\n")[:3])
+    for pattern in ROLE_PATTERNS:
+        match = re.search(pattern, first_lines, re.IGNORECASE)
+        if match:
+            return match.group(0).strip().title()
+    for pattern in ROLE_PATTERNS:
+        match = re.search(pattern, jd_text, re.IGNORECASE)
+        if match:
+            return match.group(0).strip().title()
+    return "Software Engineer"
 
 
 def parse_jd(jd_text: str) -> ParsedJD:
@@ -216,19 +248,16 @@ def parse_jd(jd_text: str) -> ParsedJD:
     if current_section and current_lines:
         sections[current_section] = "\n".join(current_lines).strip()
 
-    inferred_role = "Software Engineer"
-    for pattern in ROLE_PATTERNS:
-        match = re.search(pattern, cleaned, re.IGNORECASE)
-        if match:
-            inferred_role = match.group(0).strip().title()
-            break
+    inferred_role = extract_role_from_jd(cleaned)
 
     inferred_company = "Tech Company"
     for pattern in COMPANY_PATTERNS:
-        match = re.search(pattern, cleaned, re.IGNORECASE)
+        match = re.search(pattern, cleaned)
         if match:
-            inferred_company = match.group(1).strip()
-            break
+            candidate = match.group(1).strip()
+            if len(candidate) > 2 and candidate.lower() not in _FALSE_POSITIVE_COMPANIES:
+                inferred_company = candidate
+                break
 
     return ParsedJD(
         full_text=cleaned,
