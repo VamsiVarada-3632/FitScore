@@ -24,3 +24,20 @@ const TIPS = [
   { icon: 'label', text: 'Add a dedicated Technical Skills section with missing keywords explicitly listed.' },
   { icon: 'star', text: 'Lead bullets with strong action verbs: Architected, Engineered, Optimized, Delivered.' },
 ];
+
+function extractRole(jd) {
+  const roles = [
+    'Senior Frontend Engineer', 'Full Stack Developer', 'React Developer',
+    'Software Engineer', 'UI Engineer', 'Frontend Developer', 'Backend Engineer',
+    'Senior Software Engineer', 'Staff Engineer',
+  ];
+  for (const role of roles) {
+    if (jd.toLowerCase().includes(role.toLowerCase())) return role;
+  }
+  return 'Software Engineer';
+}
+
+function extractCompany(jd) {
+  const match = jd.match(/(?:at|@|join|joining|for)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/);
+  return match ? match[1] : 'Tech Company';
+}
