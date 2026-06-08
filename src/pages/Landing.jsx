@@ -57,6 +57,39 @@ export default function Landing() {
               <span className="text-sm text-on-surface-variant">Used by 2,400+ job seekers</span>
             </motion.div>
           </motion.div>
+
+          {/* Right — floating mock card */}
+          <motion.div className="hidden lg:flex justify-center" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+            <motion.div className="relative rounded-2xl p-6 w-80"
+              style={{ background: '#0F1826', border: '1px solid rgba(59,74,68,0.5)', rotate: -3 }}
+              animate={{ y: [0, -12, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ rotate: 0 }}>
+              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                <div className="absolute left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(70,241,197,0.6),transparent)', animation: 'scan 3s linear infinite' }} />
+              </div>
+              <p className="text-xs text-on-surface-variant mb-1">Senior Frontend Engineer</p>
+              <p className="text-sm font-syne font-bold text-on-surface mb-4">at Acme Corp</p>
+              <div className="flex justify-center mb-4">
+                <div className="relative w-24 h-24">
+                  <svg width="96" height="96" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="48" cy="48" r="38" fill="none" stroke="#242c28" strokeWidth="6" />
+                    <circle cx="48" cy="48" r="38" fill="none" stroke="#46f1c5" strokeWidth="6" strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 38} strokeDashoffset={2 * Math.PI * 38 * (1 - 0.78)} style={{ filter: 'drop-shadow(0 0 6px #46f1c580)' }} />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-primary text-xl">78</div>
+                </div>
+              </div>
+              {[{ label: 'Matched', icon: 'check_circle', color: 'text-primary' }, { label: 'Missing 4', icon: 'cancel', color: 'text-error' }, { label: 'AI Ready', icon: 'auto_awesome', color: 'text-secondary' }].map(row => (
+                <div key={row.label} className="flex items-center gap-2 text-sm mb-2">
+                  <span className={`material-symbols-outlined ${row.color}`} style={{ fontVariationSettings: "'FILL' 1", fontSize: 18 }}>{row.icon}</span>
+                  <span className="text-on-surface-variant">{row.label}</span>
+                </div>
+              ))}
+              <button onClick={() => navigate('/upload')} className="mt-2 w-full py-2 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium">
+                Generate Full Report
+              </button>
+            </motion.div>
+          </motion.div>
         </section>
       </div>
     </div>
