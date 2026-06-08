@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.env
+.DS_Store
+.vscode/
+.idea/
