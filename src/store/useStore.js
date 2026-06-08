@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { generateMockAnalysis } from '../utils/scoring';
 
 const STORAGE_KEY = 'fitscore_analyses';
-const API_BASE = 'http://localhost:8001';
+const API_BASE = 'http://127.0.0.1:8001';
 
 function loadFromStorage() {
   try {
@@ -12,33 +12,46 @@ function loadFromStorage() {
 }
 
 function saveToStorage(analyses) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(analyses)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(analyses));
+  } catch {}
 }
 
-// Map backend FullAnalysisResponse → frontend analysis shape
-function mapBackendResponse(data) {
-  const ICONS = ['bolt', 'label', 'star'];
+const ICONS = ['bolt', 'label', 'star'];
+
+function normalizeApiResponse(apiResponse) {
+  const tips = (apiResponse.suggestions.tips || []).map((item, i) => ({
+    icon: ICONS[i % ICONS.length],
+    text: typeof item === 'string' ? item : item.text || '',
+  }));
+
   return {
-    id: data.analysis_id,
-    createdAt: data.created_at,
-    filename: data.filename,
-    jdSnippet: data.jd_snippet,
-    role: data.role,
-    company: data.company,
-    score: Math.round(data.score.match_score),
-    matchedKeywords: data.score.matched_keywords,
-    missingKeywords: data.score.missing_keywords,
-    skillsGap: data.gap_analysis.skills_gap,
-    experienceGap: data.gap_analysis.experience_gap,
-    educationGap: data.gap_analysis.education_gap,
-    atsScore: data.gap_analysis.ats_score_estimate,
-    bulletImprovements: data.suggestions.bullet_improvements,
-    keywordsToAdd: data.suggestions.keywords_to_add,
-    summaryRewrite: data.suggestions.summary_rewrite,
-    tips: data.suggestions.tips.map((text, i) => ({
-      icon: ICONS[i % ICONS.length],
-      text,
-    })),
+    id: apiResponse.analysis_id,
+    createdAt: apiResponse.created_at,
+    filename: apiResponse.filename,
+    jdSnippet: apiResponse.jd_snippet,
+    role: apiResponse.role,
+    company: apiResponse.company,
+    // Flat score fields
+    score: Math.round(apiResponse.score.match_score),
+    scoreLabel: apiResponse.score.score_label,
+    scoreColor: apiResponse.score.score_color,
+    resumeWordCount: apiResponse.score.resume_word_count,
+    jdWordCount: apiResponse.score.jd_word_count,
+    matchedKeywords: apiResponse.score.matched_keywords || [],
+    missingKeywords: apiResponse.score.missing_keywords || [],
+    // Flat gap_analysis fields
+    skillsGap: apiResponse.gap_analysis.skills_gap || [],
+    experienceGap: apiResponse.gap_analysis.experience_gap || '',
+    educationGap: apiResponse.gap_analysis.education_gap || null,
+    overallSummary: apiResponse.gap_analysis.overall_summary || '',
+    atsScore: apiResponse.gap_analysis.ats_score_estimate || 0,
+    // Flat suggestions fields
+    summaryRewrite: apiResponse.suggestions.summary_rewrite || { original: '', improved: '' },
+    bulletImprovements: apiResponse.suggestions.bullet_improvements || [],
+    keywordsToAdd: apiResponse.suggestions.keywords_to_add || [],
+    tips,
+    processingTimeMs: apiResponse.processing_time_ms,
   };
 }
 
@@ -48,42 +61,43 @@ const useStore = create((set, get) => ({
   uploadedFile: null,
   jdText: '',
   isAnalyzing: false,
+  analysisError: null,
 
   setUploadedFile: (file) => set({ uploadedFile: file }),
   setJdText: (text) => set({ jdText: text }),
   setIsAnalyzing: (val) => set({ isAnalyzing: val }),
   resetUpload: () => set({ uploadedFile: null, jdText: '' }),
+  clearError: () => set({ analysisError: null }),
 
   startAnalysis: async () => {
-    const { uploadedFile, jdText, analyses } = get();
-    let analysis;
+    const { uploadedFile, jdText } = get();
+    set({ isAnalyzing: true, analysisError: null });
 
-    try {
-      const formData = new FormData();
-      formData.append('resume', uploadedFile);
-      formData.append('jd_text', jdText);
+    const formData = new FormData();
+    formData.append('resume', uploadedFile);
+    formData.append('jd_text', jdText);
 
-      const res = await fetch(`${API_BASE}/analyze/full`, {
-        method: 'POST',
-        body: formData,
-      });
+    const response = await fetch(`${API_BASE}/analyze/full`, {
+      method: 'POST',
+      body: formData,
+    });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      analysis = mapBackendResponse(data);
-    } catch (err) {
-      console.warn('Backend unavailable, using mock analysis:', err.message);
-      analysis = generateMockAnalysis(uploadedFile, jdText);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const message = errData.detail || `Server error ${response.status}`;
+      set({ isAnalyzing: false, analysisError: message });
+      throw new Error(message);
     }
 
-    const updated = [analysis, ...analyses];
+    const apiResponse = await response.json();
+    const normalized = normalizeApiResponse(apiResponse);
+
+    const { analyses } = get();
+    const updated = [normalized, ...analyses].slice(0, 20);
     saveToStorage(updated);
-    set({ analyses: updated, currentAnalysis: analysis, isAnalyzing: false });
-    return analysis;
+
+    set({ analyses: updated, currentAnalysis: normalized, isAnalyzing: false });
+    return normalized;
   },
 
   setCurrentAnalysis: (id) => {
@@ -95,10 +109,16 @@ const useStore = create((set, get) => ({
     const { analyses, currentAnalysis } = get();
     const updated = analyses.filter((a) => a.id !== id);
     saveToStorage(updated);
-    set({ analyses: updated, currentAnalysis: currentAnalysis?.id === id ? null : currentAnalysis });
+    set({
+      analyses: updated,
+      currentAnalysis: currentAnalysis?.id === id ? null : currentAnalysis,
+    });
   },
 
-  clearAll: () => { saveToStorage([]); set({ analyses: [], currentAnalysis: null }); },
+  clearAll: () => {
+    saveToStorage([]);
+    set({ analyses: [], currentAnalysis: null });
+  },
 
   loadDemoAnalysis: () => {
     const demo = generateMockAnalysis(

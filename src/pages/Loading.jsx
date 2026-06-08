@@ -48,13 +48,19 @@ export default function Loading() {
     }, 80);
 
     // Fire the real API call
-    startAnalysis().then(() => {
-      clearInterval(progInterval);
-      clearInterval(msgInterval);
-      setProgress(100);
-      setDone(true);
-      setTimeout(() => navigate('/results'), 700);
-    });
+    startAnalysis()
+      .then(() => {
+        clearInterval(progInterval);
+        clearInterval(msgInterval);
+        setProgress(100);
+        setDone(true);
+        setTimeout(() => navigate('/results'), 700);
+      })
+      .catch(() => {
+        clearInterval(progInterval);
+        clearInterval(msgInterval);
+        navigate('/upload?error=analysis_failed');
+      });
 
     return () => {
       clearInterval(msgInterval);
