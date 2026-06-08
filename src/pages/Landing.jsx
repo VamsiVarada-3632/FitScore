@@ -91,6 +91,48 @@ export default function Landing() {
             </motion.div>
           </motion.div>
         </section>
+
+        {/* Feature cards */}
+        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { icon: 'bolt', title: 'Instant Match Score', desc: 'Upload your resume and paste any JD. Get a 0–100 compatibility score in seconds.' },
+              { icon: 'manage_search', title: 'Skill Gap Analysis', desc: 'See exactly which keywords are missing from your resume vs. the job description.' },
+              { icon: 'edit_note', title: 'AI Rewrite Suggestions', desc: 'Receive line-by-line bullet improvements and a full summary rewrite tailored to the role.' },
+            ].map((f, i) => (
+              <motion.div key={f.title} className="p-6 rounded-2xl border border-outline-variant/40 cursor-default" style={{ background: '#161d1a' }}
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                whileHover={{ backgroundColor: '#19211e', borderColor: 'rgba(70,241,197,0.2)' }}>
+                <motion.div className="w-12 h-12 rounded-xl border border-outline-variant/50 flex items-center justify-center mb-4" whileHover={{ borderColor: 'rgba(70,241,197,0.5)' }}>
+                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>{f.icon}</span>
+                </motion.div>
+                <h3 className="font-syne font-bold text-on-surface mb-2">{f.title}</h3>
+                <p className="text-sm text-on-surface-variant leading-relaxed">{f.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section id="how" className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
+          <motion.h2 className="font-syne font-bold text-2xl text-on-surface text-center mb-12" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            How it works
+          </motion.h2>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-0">
+            {[{ icon: 'upload_file', label: 'Upload', sub: 'Your PDF resume' }, { icon: 'analytics', label: 'Analyze', sub: 'AI scans for keywords' }, { icon: 'grade', label: 'Score', sub: 'Get your fit report' }].map((step, i) => (
+              <div key={step.label} className="flex items-center">
+                <motion.div className="flex flex-col items-center" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}>
+                  <div className="w-16 h-16 rounded-2xl border border-primary/30 flex items-center justify-center mb-3" style={{ background: 'rgba(70,241,197,0.06)' }}>
+                    <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>{step.icon}</span>
+                  </div>
+                  <p className="font-syne font-bold text-on-surface">{step.label}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">{step.sub}</p>
+                </motion.div>
+                {i < 2 && <div className="hidden md:block w-24 h-px mx-4 mt-[-20px]" style={{ background: 'linear-gradient(90deg,#3b4a44,transparent)' }} />}
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
