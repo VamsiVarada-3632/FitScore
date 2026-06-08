@@ -1,45 +1,39 @@
 """
-Claude API client with retry logic, timeout handling, and structured JSON parsing.
+Gemini API client (replaces Claude).
+Uses the new google-genai SDK (google.genai).
 """
 
 import json
 import re
-import anthropic
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
+from google import genai
+from google.genai import types
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from core.config import get_settings
 
 settings = get_settings()
+_client: genai.Client | None = None
 
 
-def get_client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+def get_client() -> genai.Client:
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=settings.gemini_api_key)
+    return _client
 
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type(
-        (anthropic.APIConnectionError, anthropic.RateLimitError)
-    ),
-    reraise=True,
-)
-def call_claude_json(system: str, user: str, max_tokens: int = 2000) -> dict:
-    """Call Claude and parse JSON from the response. Strips markdown fences."""
+def call_gemini_json(prompt: str) -> dict:
+    """Call Gemini and parse JSON from response. Strips markdown fences."""
     client = get_client()
-    message = client.messages.create(
-        model=settings.claude_model,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+    response = client.models.generate_content(
+        model=settings.gemini_model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+        ),
     )
-    raw: str = message.content[0].text
+    raw: str = response.text
 
-    # Strip markdown code fences
+    # Strip markdown fences just in case
     raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
     raw = raw.rstrip("`").strip()
 
@@ -61,48 +55,37 @@ def run_gap_analysis(
     resume_keywords: list[str],
     missing_keywords: list[str],
 ) -> dict:
-    """Call Claude for section-wise gap analysis. Returns validated dict."""
-    system = """You are a professional resume consultant and ATS expert with 10+ years of experience.
+    """Gap analysis via Gemini. Returns validated dict."""
+    prompt = f"""You are a professional resume consultant and ATS expert with 10+ years of experience.
 
-Analyze the resume against the job description and return ONLY a valid JSON object with this EXACT structure — no markdown, no explanation:
+Analyze the resume against the job description and return ONLY valid JSON:
 
-{
+{{
   "skills_gap": ["specific missing skill 1", "specific missing skill 2", "specific missing skill 3"],
   "experience_gap": "One precise sentence about experience level mismatch.",
   "education_gap": null,
   "overall_summary": "2-3 sentences: what matches well, main gap, recommendation.",
   "ats_score_estimate": 65
-}
+}}
 
-Rules:
-- skills_gap: max 6 items, be specific
-- experience_gap: factual, based on what you read
-- education_gap: null if no gap detected
-- ats_score_estimate: integer 0-100
-- Return ONLY valid JSON"""
+RESUME (first 3000 chars):
+{resume_text[:3000]}
 
-    user = f"""RESUME (first 3500 chars):
-{resume_text[:3500]}
+JOB DESCRIPTION (first 2000 chars):
+{jd_text[:2000]}
 
-JOB DESCRIPTION (first 2500 chars):
-{jd_text[:2500]}
+MISSING KEYWORDS: {', '.join(missing_keywords[:10])}
 
-ALREADY IDENTIFIED AS MISSING: {', '.join(missing_keywords[:10])}
+Return ONLY valid JSON. No markdown. No explanation."""
 
-Perform section-wise gap analysis."""
-
-    result = call_claude_json(system, user)
+    result = call_gemini_json(prompt)
 
     return {
         "skills_gap": result.get("skills_gap", missing_keywords[:5]),
-        "experience_gap": result.get(
-            "experience_gap", "Gap analysis not available."
-        ),
+        "experience_gap": result.get("experience_gap", "Gap analysis not available."),
         "education_gap": result.get("education_gap"),
         "overall_summary": result.get("overall_summary", "Analysis complete."),
-        "ats_score_estimate": max(
-            0, min(100, int(result.get("ats_score_estimate", 60)))
-        ),
+        "ats_score_estimate": max(0, min(100, int(result.get("ats_score_estimate", 60)))),
     }
 
 
@@ -112,20 +95,20 @@ def run_suggestions(
     matched_keywords: list[str],
     missing_keywords: list[str],
 ) -> dict:
-    """Call Claude for rewrite suggestions. Returns validated dict."""
-    system = """You are an expert resume writer specializing in ATS optimization and impact-driven bullet points.
+    """Rewrite suggestions via Gemini. Returns validated dict."""
+    prompt = f"""You are an expert resume writer specializing in ATS optimization.
 
-Given a resume and job description, return ONLY a valid JSON object with this EXACT structure — no markdown:
+Return ONLY valid JSON:
 
-{
-  "summary_rewrite": {
-    "original": "exact first 150 chars of resume summary/objective, or 'No summary section found.'",
-    "improved": "a powerful, ATS-optimized 2-3 sentence summary targeting this specific JD"
-  },
+{{
+  "summary_rewrite": {{
+    "original": "exact first 150 chars of resume summary, or 'No summary section found.'",
+    "improved": "a powerful 2-3 sentence ATS-optimized summary targeting this specific JD"
+  }},
   "bullet_improvements": [
-    {"original": "exact weak bullet from resume", "improved": "improved version with action verb, metric, and impact"},
-    {"original": "another weak bullet", "improved": "another improved version"},
-    {"original": "third weak bullet", "improved": "third improved version"}
+    {{"original": "exact weak bullet from resume", "improved": "improved version with action verb and metric"}},
+    {{"original": "another weak bullet", "improved": "another improved version"}},
+    {{"original": "third weak bullet", "improved": "third improved version"}}
   ],
   "keywords_to_add": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
   "tips": [
@@ -133,17 +116,10 @@ Given a resume and job description, return ONLY a valid JSON object with this EX
     "Specific actionable tip 2",
     "Specific actionable tip 3"
   ]
-}
+}}
 
-Rules:
-- bullet_improvements: exactly 3 pairs with REAL bullets extracted from the resume
-- improved bullets: start with strong verb (Architected/Engineered/Delivered/Optimized)
-- keywords_to_add: from the missing keywords list, max 6
-- tips: specific to this resume, not generic
-- Return ONLY valid JSON"""
-
-    user = f"""RESUME (first 3500 chars):
-{resume_text[:3500]}
+RESUME (first 3000 chars):
+{resume_text[:3000]}
 
 JOB DESCRIPTION (first 2000 chars):
 {jd_text[:2000]}
@@ -151,52 +127,37 @@ JOB DESCRIPTION (first 2000 chars):
 MISSING KEYWORDS: {', '.join(missing_keywords[:8])}
 MATCHED KEYWORDS: {', '.join(matched_keywords[:8])}
 
-Generate targeted rewrite suggestions."""
+Return ONLY valid JSON. No markdown. No explanation."""
 
-    result = call_claude_json(system, user, max_tokens=2500)
+    result = call_gemini_json(prompt)
 
-    summary_rewrite = result.get("summary_rewrite", {})
-    if not isinstance(summary_rewrite, dict):
-        summary_rewrite = {
-            "original": "No summary found.",
-            "improved": "Could not generate rewrite.",
-        }
+    summary = result.get("summary_rewrite", {})
+    if not isinstance(summary, dict):
+        summary = {"original": "No summary found.", "improved": "Not available."}
 
     bullets = result.get("bullet_improvements", [])
     if not isinstance(bullets, list):
         bullets = []
-    bullets = bullets[:3]
 
-    # Ensure we always have 3 bullet pairs
     while len(bullets) < 3:
-        bullets.append(
-            {
-                "original": "Built features for the team using existing technologies.",
-                "improved": "Engineered scalable features that improved team velocity by 20% and reduced technical debt.",
-            }
-        )
+        bullets.append({
+            "original": "Built features for the team using existing technologies.",
+            "improved": "Engineered scalable features improving team velocity by 20% and reducing technical debt.",
+        })
 
     return {
         "summary_rewrite": {
-            "original": summary_rewrite.get("original", "No summary found."),
-            "improved": summary_rewrite.get(
-                "improved", "Improved summary not available."
-            ),
+            "original": summary.get("original", "No summary found."),
+            "improved": summary.get("improved", "Not available."),
         },
         "bullet_improvements": [
-            {
-                "original": b.get("original", ""),
-                "improved": b.get("improved", ""),
-            }
-            for b in bullets
+            {"original": b.get("original", ""), "improved": b.get("improved", "")}
+            for b in bullets[:3]
         ],
         "keywords_to_add": result.get("keywords_to_add", missing_keywords[:6]),
-        "tips": result.get(
-            "tips",
-            [
-                "Quantify all achievements with specific numbers and percentages.",
-                "Ensure all JD keywords appear in your skills section.",
-                "Use strong action verbs to open each bullet point.",
-            ],
-        )[:3],
+        "tips": result.get("tips", [
+            "Quantify all achievements with specific numbers and percentages.",
+            "Add missing keywords explicitly in your skills section.",
+            "Use strong action verbs to open each bullet point.",
+        ])[:3],
     }
