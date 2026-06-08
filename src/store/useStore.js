@@ -34,6 +34,32 @@ const useStore = create((set, get) => ({
     set({ analyses: updated, currentAnalysis: analysis, isAnalyzing: false });
     return analysis;
   },
+
+  setCurrentAnalysis: (id) => {
+    const found = get().analyses.find((a) => a.id === id);
+    set({ currentAnalysis: found || null });
+  },
+
+  deleteAnalysis: (id) => {
+    const { analyses, currentAnalysis } = get();
+    const updated = analyses.filter((a) => a.id !== id);
+    saveToStorage(updated);
+    set({ analyses: updated, currentAnalysis: currentAnalysis?.id === id ? null : currentAnalysis });
+  },
+
+  clearAll: () => { saveToStorage([]); set({ analyses: [], currentAnalysis: null }); },
+
+  loadDemoAnalysis: () => {
+    const demo = generateMockAnalysis(
+      { name: 'john_doe_resume.pdf' },
+      'We are looking for a Senior Frontend Engineer at Acme Corp to join our platform team. You will work with React, TypeScript, Node.js, and AWS.'
+    );
+    const { analyses } = get();
+    const updated = [demo, ...analyses];
+    saveToStorage(updated);
+    set({ analyses: updated, currentAnalysis: demo });
+    return demo;
+  },
 }));
 
 export default useStore;
