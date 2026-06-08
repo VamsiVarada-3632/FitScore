@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import { Menu, X, Plus } from 'lucide-react';
 
 export default function Navbar({ activeLink = '' }) {
+  const { scrollY } = useScroll();
+  const [hasScrolled, setHasScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return scrollY.on('change', (v) => setHasScrolled(v > 10));
+  }, [scrollY]);
 
   const links = [
     { label: 'Features', href: '/#features' },
@@ -14,9 +20,14 @@ export default function Navbar({ activeLink = '' }) {
   ];
 
   return (
-    <nav
+    <motion.nav
       className="sticky top-0 z-50 w-full border-b border-outline-variant/30"
-      style={{ background: 'rgba(13,21,18,0.8)', backdropFilter: 'blur(12px)' }}
+      animate={{
+        backgroundColor: hasScrolled ? 'rgba(13,21,18,0.92)' : 'rgba(13,21,18,0.7)',
+        boxShadow: hasScrolled ? '0 4px 24px rgba(0,0,0,0.4)' : 'none',
+      }}
+      transition={{ duration: 0.2 }}
+      style={{ backdropFilter: 'blur(12px)' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
@@ -32,10 +43,12 @@ export default function Navbar({ activeLink = '' }) {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/upload')}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-on-primary text-sm font-semibold">
+          <motion.button onClick={() => navigate('/upload')}
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-on-primary text-sm font-semibold"
+            whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(70,241,197,0.4)' }}
+            whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> Get Started
-          </button>
+          </motion.button>
           <button className="md:hidden p-2 text-on-surface-variant" onClick={() => setMenuOpen(v => !v)} aria-label="Toggle menu">
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -57,6 +70,6 @@ export default function Navbar({ activeLink = '' }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </motion.nav>
   );
 }
