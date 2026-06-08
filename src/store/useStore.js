@@ -1,8 +1,21 @@
 import { create } from 'zustand';
 import { generateMockAnalysis } from '../utils/scoring';
 
+const STORAGE_KEY = 'fitscore_analyses';
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveToStorage(analyses) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(analyses)); } catch {}
+}
+
 const useStore = create((set, get) => ({
-  analyses: [],
+  analyses: loadFromStorage(),
   currentAnalysis: null,
   uploadedFile: null,
   jdText: '',
@@ -17,6 +30,7 @@ const useStore = create((set, get) => ({
     const { uploadedFile, jdText, analyses } = get();
     const analysis = generateMockAnalysis(uploadedFile, jdText);
     const updated = [analysis, ...analyses];
+    saveToStorage(updated);
     set({ analyses: updated, currentAnalysis: analysis, isAnalyzing: false });
     return analysis;
   },
