@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60" role="img" aria-label="FitScore AI Logo">
+  <defs>
+    <filter id="glow-ring" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-dot" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bg-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#46f1c5" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#0d1512" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ── Icon (60×60) ─────────────────────────────────── -->
+
+  <!-- Soft background glow -->
+  <circle cx="30" cy="30" r="30" fill="url(#bg-glow)"/>
+
+  <!-- Dark icon background -->
+  <circle cx="30" cy="30" r="27" fill="#0d1512" stroke="#3b4a44" stroke-width="0.75"/>
+
+  <!-- Score ring track -->
+  <circle cx="30" cy="30" r="21"
+    fill="none" stroke="#242c28" stroke-width="4.5"/>
+
+  <!-- Score ring arc — 78% filled, starts at top (−90°) -->
+  <!-- circumference = 2π×21 = 131.95 | dashoffset = 0.22 × 131.95 = 29.03 -->
+  <circle cx="30" cy="30" r="21"
+    fill="none" stroke="#46f1c5" stroke-width="4.5"
+    stroke-linecap="round"
+    stroke-dasharray="131.95"
+    stroke-dashoffset="29.03"
+    transform="rotate(-90 30 30)"
+    filter="url(#glow-ring)"/>
+
+  <!-- Radar ring 1 -->
+  <circle cx="30" cy="30" r="13"
+    fill="none" stroke="#46f1c5" stroke-width="0.75" opacity="0.35"/>
+
+  <!-- Radar ring 2 -->
+  <circle cx="30" cy="30" r="6.5"
+    fill="none" stroke="#46f1c5" stroke-width="0.75" opacity="0.2"/>
+
+  <!-- Radar sweep line (pointing up) -->
+  <line x1="30" y1="30" x2="30" y2="10"
+    stroke="#46f1c5" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Center dot -->
+  <circle cx="30" cy="30" r="2.25" fill="#46f1c5" filter="url(#glow-dot)"/>
+
+  <!-- Arc-end blip dot
+       78% → end angle = −90° + 280.8° = 190.8°
+       x = 30 + 21·cos(190.8°) ≈ 30 − 20.63 = 9.37
+       y = 30 + 21·sin(190.8°) ≈ 30 − 3.94  = 26.06  -->
+  <circle cx="9.4" cy="26.1" r="2.75" fill="#46f1c5" filter="url(#glow-dot)"/>
+
+  <!-- ── Wordmark ─────────────────────────────────────── -->
+
+  <!-- "Fit" — slightly lighter weight feel -->
+  <text x="68" y="38"
+    font-family="Syne, 'Arial Black', sans-serif"
+    font-size="26" font-weight="700"
+    fill="#46f1c5"
+    letter-spacing="-0.4">Fit</text>
+
+  <!-- "Score" — slightly bolder -->
+  <text x="106" y="38"
+    font-family="Syne, 'Arial Black', sans-serif"
+    font-size="26" font-weight="800"
+    fill="#46f1c5"
+    letter-spacing="-0.4">Score</text>
+
+  <!-- Subtle "AI" superscript badge -->
+  <rect x="216" y="14" width="26" height="13" rx="4"
+    fill="#46f1c5" fill-opacity="0.12"
+    stroke="#46f1c5" stroke-width="0.75" stroke-opacity="0.5"/>
+  <text x="229" y="24"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-size="8" font-weight="700"
+    fill="#46f1c5" text-anchor="middle"
+    letter-spacing="0.5">AI</text>
+</svg>
