@@ -6,6 +6,8 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/**/*.pyc
 backend/.env
+.env.local
+.env.*.local
 .DS_Store
 .vscode/
 .idea/
