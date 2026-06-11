@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import get_settings
+from core.embeddings import warmup_model
 from middleware.logging_middleware import configure_logging
 from routers import score, analyze, suggest, health
 
@@ -21,10 +22,16 @@ log = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("starting_fitscore_api", env=settings.app_env)
-    log.info("fitscore_api_ready")
+    print("FitScore API starting up...")
+    print("Loading embedding model...")
+    try:
+        warmup_model()
+        print("Embedding model ready")
+    except Exception as e:
+        print(f"Warning: {e}")
+    print("FitScore API ready")
     yield
-    log.info("shutting_down_fitscore_api")
+    print("FitScore API shutting down")
 
 
 app = FastAPI(
@@ -53,7 +60,14 @@ app = FastAPI(
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://*.vercel.app",
+        "https://fitscore.vercel.app",
+        "https://fitscore-ai.vercel.app",
+        "https://*.hf.space",
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],

@@ -2,6 +2,10 @@ fastapi
 uvicorn[standard]
 python-multipart
 google-genai
+sentence-transformers
+scikit-learn
+numpy
+cachetools
 pdfplumber
 PyMuPDF
 nltk
