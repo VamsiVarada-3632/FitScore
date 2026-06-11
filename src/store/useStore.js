@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { generateMockAnalysis } from '../utils/scoring';
 
 const STORAGE_KEY = 'fitscore_analyses';
-const API_BASE = 'http://127.0.0.1:8001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
 
 function loadFromStorage() {
   try {
