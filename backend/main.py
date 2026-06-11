@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import get_settings
-from core.embeddings import warmup_model
 from middleware.logging_middleware import configure_logging
 from routers import score, analyze, suggest, health
 
@@ -23,9 +22,7 @@ log = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("starting_fitscore_api", env=settings.app_env)
-    log.info("loading_embedding_model")
-    warmup_model()
-    log.info("embedding_model_ready")
+    log.info("fitscore_api_ready")
     yield
     log.info("shutting_down_fitscore_api")
 

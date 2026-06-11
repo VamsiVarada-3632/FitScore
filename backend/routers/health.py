@@ -1,10 +1,7 @@
 import time
-from google import genai
 from fastapi import APIRouter
 from models.response_models import HealthResponse
 from core.config import get_settings
-from core.embeddings import get_model as get_embedding_model
-
 settings = get_settings()
 router = APIRouter()
 START_TIME = time.time()
@@ -12,11 +9,7 @@ START_TIME = time.time()
 
 @router.get("/", response_model=HealthResponse)
 async def health_check():
-    try:
-        model = get_embedding_model()
-        embedding_ok = model is not None
-    except Exception:
-        embedding_ok = False
+    embedding_ok = True  # lightweight scorer is always ready
 
     try:
         gemini_ok = (
